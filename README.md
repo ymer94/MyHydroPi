@@ -1,4 +1,3 @@
-<style type="text/css"> a { padding: 0; margin: 0 2px; } </style>
 # MyHydroPi - Clone
 Raspberry Pi Pool Monitor
 ##Why?
