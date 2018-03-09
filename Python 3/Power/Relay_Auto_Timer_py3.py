@@ -26,7 +26,6 @@ from time import sleep
 import datetime
 import RPi.GPIO as GPIO
 
-
 servername = "localhost"
 username = "YourMySQLusername"
 password = "YourMySQLpassword"
@@ -44,12 +43,13 @@ relaynum = ["relay1", "relay2", "relay3", "relay4"]  # Relay names in MySQL
 relaycount = range(1, 5)  # Number of relays to be controlled
 numdtpairs = 4  # Number of Start/Stop pairs per relay
 
-#Set our GPIO pins to outputs and set them to off then wait 2 seconds
+# Set our GPIO pins to outputs and set them to off then wait 2 seconds
 
 for i in outputpins:
     GPIO.setup(i, GPIO.OUT)
     GPIO.output(i, False)
 sleep(2)
+
 
 # Read the manual setting from the database
 
@@ -62,7 +62,8 @@ def read_override_data():
     conn.close()
     return override_timer_values
 
-#Get the start/stop pairs from the SQL database
+
+# Get the start/stop pairs from the SQL database
 
 
 def get_relay_timer_data(tablename, row):
@@ -73,13 +74,14 @@ def get_relay_timer_data(tablename, row):
     conn.close()
     return relay_timer_values
 
-#Check the timer data from SQL and see if all the conditions
-#are met to activate the Relay
+
+# Check the timer data from SQL and see if all the conditions
+# are met to activate the Relay
 
 
 def timercheck(timer_data, relay):
     if timer_data[1] is None:  # Python reads a "NULL" value as None
-        return  "False"
+        return "False"
     else:
         cdt = datetime.datetime.now()
         starttimer = timer_data[1]
@@ -87,14 +89,15 @@ def timercheck(timer_data, relay):
         stoptimer = timer_data[2]
         stoptimer = stoptimer.replace(year=cdt.year)
         if (cdt.date() >= starttimer.date()
-            and cdt.date() <= stoptimer.date()):
+                and cdt.date() <= stoptimer.date()):
             if (cdt.time() >= starttimer.time()
-                and cdt.time() <= stoptimer.time()):
+                    and cdt.time() <= stoptimer.time()):
                 return "True"
             else:
                 return "False"
         else:
             return "False"
+
 
 # Main Program
 

@@ -24,11 +24,10 @@ import paho.mqtt.publish as publish
 
 
 class atlas_i2c:
-
     long_timeout = 1.5  # the timeout needed to query readings & calibrations
     short_timeout = .5  # timeout for regular commands
     default_bus = 1  # the default bus for I2C on the newer Raspberry Pis,
-                     # certain older boards use bus 0
+    # certain older boards use bus 0
     default_address = 99  # the default address for the Temperature sensor
 
     def __init__(self, address=default_address, bus=default_bus):
@@ -62,7 +61,7 @@ class atlas_i2c:
         # remove the null characters to get the response
         response = list([x for x in res])
 
-        if(response[0] == 1):  # if the response isnt an error
+        if (response[0] == 1):  # if the response isnt an error
             # change MSB to 0 for all received characters except the first
             # and get a list of characters
             char_list = [chr(x & ~0x80) for x in list(response[1:])]
@@ -80,10 +79,10 @@ class atlas_i2c:
         self.write(string)
 
         # the read and calibration commands require a longer timeout
-        if((string.upper().startswith("R")) or
-           (string.upper().startswith("CAL"))):
+        if ((string.upper().startswith("R")) or
+                (string.upper().startswith("CAL"))):
             sleep(self.long_timeout)
-        elif((string.upper().startswith("SLEEP"))):
+        elif ((string.upper().startswith("SLEEP"))):
             return "sleep mode"
         else:
             sleep(self.short_timeout)
@@ -96,44 +95,45 @@ class atlas_i2c:
 
 def main():
     while True:  # Repeat the code indefinitely
-        
+
         # Oxidation Reduction Sensor
         try:
-            device = atlas_i2c(98)  
+            device = atlas_i2c(98)
             orp_reading = device.query("R")
-            print (orp_reading)
+            print(orp_reading)
             publish.single("ORP", orp_reading, hostname="your_server")
         except IOError:
-            print ("Query failed")
-            
+            print("Query failed")
+
         # pH Sensor    
         try:
-            device = atlas_i2c(99)  
+            device = atlas_i2c(99)
             ph_reading = device.query("R")
-            print (ph_reading)
+            print(ph_reading)
             publish.single("pH", ph_reading, hostname="your_server")
         except IOError:
-            print ("Query failed")
-            
+            print("Query failed")
+
         # Electrical Conductivity Sensor
         try:
-            device = atlas_i2c(100)  
+            device = atlas_i2c(100)
             ec_reading = device.query("R")
-            print (ec_reading)
+            print(ec_reading)
             publish.single("EC", ec_reading, hostname="your_server")
         except IOError:
-            print ("Query failed")
-        
+            print("Query failed")
+
         # Temperature Sensor
         try:
             device = atlas_i2c(102)
             temp_reading = device.query("R")
-            print (temp_reading)
+            print(temp_reading)
             publish.single("Temp", temp_reading, hostname="your_server")
         except IOError:
-            print ("Query failed")
+            print("Query failed")
 
         sleep(300)  # read sensor circuit every 300 sec (5 min)
-        
+
+
 if __name__ == '__main__':
     main()

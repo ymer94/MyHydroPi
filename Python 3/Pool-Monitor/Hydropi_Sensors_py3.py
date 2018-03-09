@@ -47,7 +47,6 @@ import cymysql.cursors
 from time import sleep
 from collections import OrderedDict
 
-
 # Uncomment sleep if running program at startup with crontab
 
 sleep(10)
@@ -57,15 +56,15 @@ sleep(10)
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
 
+
 # Define Atlas Scientific Sensor Class
 
 
 class atlas_i2c:
-
     long_timeout = 1.5  # the timeout needed to query readings & calibrations
     short_timeout = .5  # timeout for regular commands
     default_bus = 1  # the default bus for I2C on the newer Raspberry Pis,
-                     # certain older boards use bus 0
+    # certain older boards use bus 0
     default_address = 102  # the default address for the Temperature sensor
 
     def __init__(self, address=default_address, bus=default_bus):
@@ -99,7 +98,7 @@ class atlas_i2c:
         # remove the null characters to get the response
         response = list([x for x in res])
 
-        if(response[0] == 1):  # if the response isnt an error
+        if (response[0] == 1):  # if the response isnt an error
             # change MSB to 0 for all received characters except the first
             # and get a list of characters
             char_list = [chr(x & ~0x80) for x in list(response[1:])]
@@ -117,10 +116,10 @@ class atlas_i2c:
         self.write(string)
 
         # the read and calibration commands require a longer timeout
-        if((string.upper().startswith("R")) or
-           (string.upper().startswith("CAL"))):
+        if ((string.upper().startswith("R")) or
+                (string.upper().startswith("CAL"))):
             sleep(self.long_timeout)
-        elif((string.upper().startswith("SLEEP"))):
+        elif ((string.upper().startswith("SLEEP"))):
             return "sleep mode"
         else:
             sleep(self.short_timeout)
@@ -135,7 +134,6 @@ class atlas_i2c:
 
 
 def check_for_only_one_reference_temperature():
-
     ref_check = 0
 
     for key, value in list(sensors.items()):
@@ -148,18 +146,18 @@ def check_for_only_one_reference_temperature():
                     ref_check += 1
     if ref_check > 1:
         os.system('clear')
-        print ("\n\n                     !!!! WARNING !!!!\n\n"
-        "You can only have one Primary Temperature sensor, Please set the\n"
-        "Temperature sensor that is in the liquid you are testing to True\n"
-        "and the other to False\n\n                     !!!! WARNING !!!!\n\n")
+        print("\n\n                     !!!! WARNING !!!!\n\n"
+              "You can only have one Primary Temperature sensor, Please set the\n"
+              "Temperature sensor that is in the liquid you are testing to True\n"
+              "and the other to False\n\n                     !!!! WARNING !!!!\n\n")
         sys.exit()  # Stop program
     return
+
 
 # Create required database in the MySQL if it doesn't' already exist
 
 
 def create_database():
-
     conn = cymysql.connect(servername, username, password)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")  # Hide Warnings
@@ -173,7 +171,6 @@ def create_database():
 
 
 def open_database_connection():
-
     conn = cymysql.connect(servername, username, password, dbname)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")  # Hide Warnings
@@ -182,14 +179,12 @@ def open_database_connection():
 
 
 def close_database_connection(conn, curs):
-
     curs.execute("SET sql_notes = 1; ")
     conn.commit()
     conn.close()
 
 
 def create_sensors_table():
-
     conn, curs = open_database_connection()
 
     curs.execute("CREATE TABLE IF NOT EXISTS sensors (timestamp DATETIME);")
@@ -198,7 +193,7 @@ def create_sensors_table():
         if value["is_connected"] is True:
             try:
                 curs.execute("ALTER TABLE sensors ADD {} DECIMAL(10,2);"
-                .format(value["name"]))
+                             .format(value["name"]))
             except:
                 pass
 
@@ -208,14 +203,13 @@ def create_sensors_table():
 
 
 def remove_unused_sensors():
-
     conn, curs = open_database_connection()
 
     for key, value in list(sensors.items()):
         if value["is_connected"] is False:
             try:
                 curs.execute("ALTER TABLE sensors DROP {};"
-                            .format(value["name"]))
+                             .format(value["name"]))
             except:
                 pass
 
@@ -228,18 +222,17 @@ def remove_unused_sensors():
 
 
 def read_1_wire_temp_raw(temp_num):
+    f = open(sensors[temp_num]["ds18b20_file"], 'r')
+    lines = f.readlines()
+    f.close()
 
-        f = open(sensors[temp_num]["ds18b20_file"], 'r')
-        lines = f.readlines()
-        f.close()
+    return lines
 
-        return lines
 
 # Process the Temp Sensor file for errors and convert to degrees C
 
 
 def read_1_wire_temp(temp_num):
-
     lines = read_1_wire_temp_raw(temp_num)
 
     while lines[0].strip()[-3:] != 'YES':
@@ -251,16 +244,16 @@ def read_1_wire_temp(temp_num):
         temp_string = lines[1][equals_pos + 2:]
         # Use line below for Celsius
         temp_curr = float(temp_string) / 1000.0
-        #Uncomment line below for Fahrenheit
-        #temp_curr = ((float(temp_string) / 1000.0) * (9.0 / 5.0)) + 32
+        # Uncomment line below for Fahrenheit
+        # temp_curr = ((float(temp_string) / 1000.0) * (9.0 / 5.0)) + 32
 
         return temp_curr
+
 
 # read and log each sensor if it is set to True in the sensors list
 
 
 def log_sensor_readings(all_curr_readings):
-
     # Create a timestamp and store all readings on the MySQL database
 
     conn, curs = open_database_connection()
@@ -273,7 +266,7 @@ def log_sensor_readings(all_curr_readings):
     for readings in all_curr_readings:
         try:
             curs.execute(("UPDATE sensors SET {} = {} WHERE timestamp = '{}'")
-                        .format(readings[0], readings[1], last_timestamp))
+                         .format(readings[0], readings[1], last_timestamp))
         except:
             pass
 
@@ -283,7 +276,6 @@ def log_sensor_readings(all_curr_readings):
 
 
 def read_sensors():
-
     all_curr_readings = []
     ref_temp = 25
 
@@ -294,31 +286,31 @@ def read_sensors():
             if value["sensor_type"] == "1_wire_temp":
                 try:
                     sensor_reading = (round(float(read_1_wire_temp(key)),
-                                 value["accuracy"]))
+                                            value["accuracy"]))
                 except:
                     sensor_reading = 50
-                    
+
                 all_curr_readings.append([value["name"], sensor_reading])
 
                 if value["is_ref"] is True:
                     ref_temp = sensor_reading
 
-    # Get the readings from any Atlas Scientific temperature sensors
+            # Get the readings from any Atlas Scientific temperature sensors
 
             if value["sensor_type"] == "atlas_scientific_temp":
                 device = atlas_i2c(value["i2c"])
                 try:
                     sensor_reading = round(float(device.query("R")),
-                                value["accuracy"])
+                                           value["accuracy"])
                 except:
                     sensor_reading = 50
-                    
+
                 all_curr_readings.append([value["name"], sensor_reading])
-                
+
                 if value["is_ref"] is True:
                     ref_temp = sensor_reading
-                    
-    # Get the readings from any Atlas Scientific Elec Conductivity sensors
+
+            # Get the readings from any Atlas Scientific Elec Conductivity sensors
 
             if value["sensor_type"] == "atlas_scientific_ec":
                 device = atlas_i2c(value["i2c"])
@@ -326,13 +318,13 @@ def read_sensors():
                 device.query("T," + str(ref_temp))
                 try:
                     sensor_reading = (round(((float(device.query("R"))) *
-                        value["ppm_multiplier"]), value["accuracy"]))
+                                             value["ppm_multiplier"]), value["accuracy"]))
                 except:
                     sensor_reading = 10000
-                    
+
                 all_curr_readings.append([value["name"], sensor_reading])
 
-    # Get the readings from any other Atlas Scientific sensors
+            # Get the readings from any other Atlas Scientific sensors
 
             if value["sensor_type"] == "atlas_scientific":
                 device = atlas_i2c(value["i2c"])
@@ -340,13 +332,13 @@ def read_sensors():
                 device.query("T," + str(ref_temp))
                 try:
                     sensor_reading = round(float(device.query("R")),
-                                value["accuracy"])
+                                           value["accuracy"])
                 except:
                     if value["name"] == "ph":
                         sensor_reading = 2
                     elif value["name"] == "orp":
                         sensor_reading = 1000
-                        
+
                 all_curr_readings.append([value["name"], sensor_reading])
 
     log_sensor_readings(all_curr_readings)
@@ -369,46 +361,46 @@ def read_sensors():
 # temperature is always set before the other Atlas Scientific sensors are read.
 
 sensors = OrderedDict([("temp_1", {  # DS18B20 Temperature Sensor
-                            "sensor_type": "1_wire_temp",
-                            "name": "ds18b20_temp",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "ds18b20_file":
-                            "/sys/bus/w1/devices/28-01157127dfff/w1_slave",
-                            "accuracy": 1}),
+    "sensor_type": "1_wire_temp",
+    "name": "ds18b20_temp",
+    "is_connected": True,
+    "is_ref": False,
+    "ds18b20_file":
+        "/sys/bus/w1/devices/28-01157127dfff/w1_slave",
+    "accuracy": 1}),
 
                        ("atlas_sensor_1", {  # Atlas Scientific Temp Sensor
-                            "sensor_type": "atlas_scientific_temp",
-                            "name": "atlas_temp",
-                            "is_connected": True,
-                            "is_ref": True,
-                            "i2c": 102,
-                            "accuracy": 1}),
+                           "sensor_type": "atlas_scientific_temp",
+                           "name": "atlas_temp",
+                           "is_connected": True,
+                           "is_ref": True,
+                           "i2c": 102,
+                           "accuracy": 1}),
 
                        ("atlas_sensor_2", {  # pH/ORP Atlas Scientific Sensor
-                            "sensor_type": "atlas_scientific",
-                            "name": "ph",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "i2c": 99,
-                            "accuracy": 2}),
+                           "sensor_type": "atlas_scientific",
+                           "name": "ph",
+                           "is_connected": True,
+                           "is_ref": False,
+                           "i2c": 99,
+                           "accuracy": 2}),
 
                        ("atlas_sensor_3", {  # pH/ORP Atlas Scientific Sensor
-                            "sensor_type": "atlas_scientific",
-                            "name": "orp",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "i2c": 98,
-                            "accuracy": 0}),
+                           "sensor_type": "atlas_scientific",
+                           "name": "orp",
+                           "is_connected": True,
+                           "is_ref": False,
+                           "i2c": 98,
+                           "accuracy": 0}),
 
                        ("atlas_sensor_4", {  # Atlas Scientific EC Sensor
-                            "sensor_type": "atlas_scientific_ec",
-                            "name": "ec",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "i2c": 100,
-                            "accuracy": 0,
-                            "ppm_multiplier": 0.67})])  # Convert EC to PPM
+                           "sensor_type": "atlas_scientific_ec",
+                           "name": "ec",
+                           "is_connected": True,
+                           "is_ref": False,
+                           "i2c": 100,
+                           "accuracy": 0,
+                           "ppm_multiplier": 0.67})])  # Convert EC to PPM
 
 # Define MySQL database login settings
 
@@ -418,7 +410,6 @@ password = "YourMysqlPassword"
 dbname = "YourMysqlDatabaseName"
 
 loops = 0  # Set starting loops count sensor readings
-
 
 #################
 #               #

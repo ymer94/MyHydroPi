@@ -89,22 +89,22 @@ from email.mime.multipart import MIMEMultipart
 
 # Uncomment sleep if running program at startup with crontab
 
-#sleep(10)
+# sleep(10)
 
 # Load Raspberry Pi Drivers for 1-Wire Temperature Sensor
 
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
 
+
 # Define Atlas Scientific Sensor Class
 
 
 class atlas_i2c:
-
     long_timeout = 1.5  # the timeout needed to query readings & calibrations
     short_timeout = .5  # timeout for regular commands
     default_bus = 1  # the default bus for I2C on the newer Raspberry Pis,
-                     # certain older boards use bus 0
+    # certain older boards use bus 0
     default_address = 102  # the default address for the Temperature sensor
 
     def __init__(self, address=default_address, bus=default_bus):
@@ -138,7 +138,7 @@ class atlas_i2c:
         # remove the null characters to get the response
         response = list([x for x in res])
 
-        if(response[0] == 1):  # if the response isnt an error
+        if (response[0] == 1):  # if the response isnt an error
             # change MSB to 0 for all received characters except the first
             # and get a list of characters
             char_list = [chr(x & ~0x80) for x in list(response[1:])]
@@ -156,10 +156,10 @@ class atlas_i2c:
         self.write(string)
 
         # the read and calibration commands require a longer timeout
-        if((string.upper().startswith("R")) or
-           (string.upper().startswith("CAL"))):
+        if ((string.upper().startswith("R")) or
+                (string.upper().startswith("CAL"))):
             sleep(self.long_timeout)
-        elif((string.upper().startswith("SLEEP"))):
+        elif ((string.upper().startswith("SLEEP"))):
             return "sleep mode"
         else:
             sleep(self.short_timeout)
@@ -169,23 +169,22 @@ class atlas_i2c:
         self.file_read.close()
         self.file_write.close()
 
+
 # Check the the number of GPIO ports equals the number of Start/Stop pairs
 
 
 def check_number_of_relays_equals_start_stop_pairs():
-
     if len(outputpins) != len(numdtpairs):
         os.system('clear')
         print("\nThe number of GPIO ports you have listed does not match the\n"
-        "number of Start/Stop pairs you have set for each relay.\n\n"
-        "Please update the variables \"outputpins\" or \"numdtpairs\"\n"
-        "so that they have the same number of entries.\n")
+              "number of Start/Stop pairs you have set for each relay.\n\n"
+              "Please update the variables \"outputpins\" or \"numdtpairs\"\n"
+              "so that they have the same number of entries.\n")
         sys.exit()  # Stop program
     return
 
 
 def set_GPIO_pins():
-
     RPi.GPIO.setmode(RPi.GPIO.BCM)
     RPi.GPIO.setwarnings(False)
 
@@ -194,11 +193,11 @@ def set_GPIO_pins():
         RPi.GPIO.output(relay, False)
     sleep(2)
 
+
 # Check that only one Primary Temperature sensor is defined
 
 
 def check_for_only_one_reference_temperature():
-
     ref_check = 0
 
     for key, value in list(sensors.items()):
@@ -211,18 +210,18 @@ def check_for_only_one_reference_temperature():
                     ref_check += 1
     if ref_check > 1:
         os.system('clear')
-        print ("\n\n                     !!!! WARNING !!!!\n\n"
-        "You can only have one Primary Temperature sensor, Please set the\n"
-        "Temperature sensor that is in the liquid you are testing to True\n"
-        "and the other to False\n\n                     !!!! WARNING !!!!\n\n")
+        print("\n\n                     !!!! WARNING !!!!\n\n"
+              "You can only have one Primary Temperature sensor, Please set the\n"
+              "Temperature sensor that is in the liquid you are testing to True\n"
+              "and the other to False\n\n                     !!!! WARNING !!!!\n\n")
         sys.exit()  # Stop program
     return
+
 
 # Create required database in the MySQL if it doesn't' already exist
 
 
 def create_database():
-
     conn = cymysql.connect(servername, username, password)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")  # Hide Warnings
@@ -236,7 +235,6 @@ def create_database():
 
 
 def open_database_connection():
-
     conn = cymysql.connect(servername, username, password, dbname)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")  # Hide Warnings
@@ -245,14 +243,12 @@ def open_database_connection():
 
 
 def close_database_connection(conn, curs):
-
     curs.execute("SET sql_notes = 1; ")
     conn.commit()
     conn.close()
 
 
 def create_relay_tables():
-
     conn, curs = open_database_connection()
 
     relaytimer = []
@@ -264,16 +260,16 @@ def create_relay_tables():
 
     for tablename in relaytimer:
         curs.execute("CREATE TABLE IF NOT EXISTS {} "
-                    "(pk INT UNSIGNED PRIMARY KEY,"
-                    "starttime DATETIME DEFAULT NULL, "
-                    "stoptime DATETIME DEFAULT "
-                    "NULL);".format(tablename))
+                     "(pk INT UNSIGNED PRIMARY KEY,"
+                     "starttime DATETIME DEFAULT NULL, "
+                     "stoptime DATETIME DEFAULT "
+                     "NULL);".format(tablename))
 
-    # Add default "NULL" data to each relay_timer table
+        # Add default "NULL" data to each relay_timer table
 
         for pairs in range(1, (numdtpairs[dtcount] + 1)):
             curs.execute("INSERT IGNORE INTO {} (pk,starttime,stoptime)"
-                        " VALUES({},NULL,NULL)".format(tablename, pairs))
+                         " VALUES({},NULL,NULL)".format(tablename, pairs))
         dtcount += 1
 
     close_database_connection(conn, curs)
@@ -282,11 +278,10 @@ def create_relay_tables():
 
 
 def create_timer_override_table():
-
     conn, curs = open_database_connection()
 
     curs.execute("CREATE TABLE IF NOT EXISTS timer_override "
-                "(pk INT UNSIGNED PRIMARY KEY);")
+                 "(pk INT UNSIGNED PRIMARY KEY);")
     curs.execute("INSERT IGNORE INTO timer_override (pk) VALUES(1)")
     curs.execute("INSERT IGNORE INTO timer_override (pk) VALUES(2)")
 
@@ -298,9 +293,9 @@ def create_timer_override_table():
             curs.execute("ALTER TABLE timer_override ADD {} VARCHAR(5)"
                          .format(relayname))
             curs.execute("UPDATE IGNORE timer_override SET {} = 'off' "
-                        "WHERE pk = 1;".format(relayname))
+                         "WHERE pk = 1;".format(relayname))
             curs.execute("UPDATE IGNORE timer_override SET {} = 'False' "
-                        "WHERE pk = 2;".format(relayname))
+                         "WHERE pk = 2;".format(relayname))
         except:
             pass
 
@@ -310,7 +305,6 @@ def create_timer_override_table():
 
 
 def create_sensors_table():
-
     conn, curs = open_database_connection()
 
     curs.execute("CREATE TABLE IF NOT EXISTS sensors (timestamp DATETIME);")
@@ -319,7 +313,7 @@ def create_sensors_table():
         if value["is_connected"] is True:
             try:
                 curs.execute("ALTER TABLE sensors ADD {} DECIMAL(10,2);"
-                .format(value["name"]))
+                             .format(value["name"]))
             except:
                 pass
 
@@ -329,12 +323,11 @@ def create_sensors_table():
 
 
 def create_settings_table():
-
     conn, curs = open_database_connection()
 
     curs.execute("CREATE TABLE IF NOT EXISTS settings "
-                "(pk TINYINT(1) UNSIGNED PRIMARY"
-                " KEY);")
+                 "(pk TINYINT(1) UNSIGNED PRIMARY"
+                 " KEY);")
     try:
         curs.execute("INSERT IGNORE INTO settings (pk) VALUES(1)")
     except:
@@ -342,13 +335,13 @@ def create_settings_table():
     for key, value in list(sensors.items()):
         try:
             curs.execute("ALTER TABLE settings ADD ({} DECIMAL(10,2), "
-            "{} DECIMAL(10,2));".format(value["upper_alert_name"],
-                                        value["lower_alert_name"]))
+                         "{} DECIMAL(10,2));".format(value["upper_alert_name"],
+                                                     value["lower_alert_name"]))
             curs.execute("UPDATE IGNORE settings SET {} = {}, {} = {} "
-                    "WHERE pk=1;".format(value["upper_alert_name"],
-                                        value["upper_alert_value"],
-                                        value["lower_alert_name"],
-                                        value["lower_alert_value"]))
+                         "WHERE pk=1;".format(value["upper_alert_name"],
+                                              value["upper_alert_value"],
+                                              value["lower_alert_name"],
+                                              value["lower_alert_value"]))
         except:
             pass
 
@@ -356,36 +349,36 @@ def create_settings_table():
         if key == "to_email":
             try:
                 curs.execute("ALTER TABLE settings ADD {} VARCHAR(254);"
-                .format(key))
+                             .format(key))
                 curs.execute("UPDATE IGNORE settings SET {} = '{}' "
-                        "WHERE pk=1;".format(key, value))
+                             "WHERE pk=1;".format(key, value))
             except:
                 pass
 
         elif key == "pause_readings":
             try:
                 curs.execute("ALTER TABLE settings ADD {} BOOLEAN;"
-                .format(key))
+                             .format(key))
                 curs.execute("UPDATE IGNORE settings SET {} = {} "
-                        "WHERE pk=1;".format(key, value))
+                             "WHERE pk=1;".format(key, value))
             except:
                 pass
 
         elif key == "offset_percent":
             try:
                 curs.execute("ALTER TABLE settings ADD {} DECIMAL(10,2);"
-                .format(key))
+                             .format(key))
                 curs.execute("UPDATE IGNORE settings SET {} = {} "
-                        "WHERE pk=1;".format(key, value))
+                             "WHERE pk=1;".format(key, value))
             except:
                 pass
 
         else:
             try:
                 curs.execute("ALTER TABLE settings ADD {} INT(10);"
-                .format(key))
+                             .format(key))
                 curs.execute("UPDATE IGNORE settings SET {} = {} "
-                        "WHERE pk=1;".format(key, value))
+                             "WHERE pk=1;".format(key, value))
             except:
                 pass
 
@@ -397,21 +390,20 @@ def create_settings_table():
 
 
 def remove_excess_timer_override_and_relay_database_entries():
-
     conn, curs = open_database_connection()
 
     curs.execute("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-                "TABLE_NAME = 'timer_override';")
+                 "TABLE_NAME = 'timer_override';")
     colnum = curs.fetchone()
     colnum = (int(colnum[0])) - 1
 
     while colnum > len(outputpins):
         curs.execute("ALTER TABLE timer_override DROP {};"
-                    .format("relay_" + str(colnum)))
+                     .format("relay_" + str(colnum)))
         curs.execute("DROP TABLE {};"
-                    .format("relay_" + str(colnum) + "_timer"))
+                     .format("relay_" + str(colnum) + "_timer"))
         curs.execute("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-                    "TABLE_NAME = 'timer_override';")
+                     "TABLE_NAME = 'timer_override';")
         colnum = curs.fetchone()
         colnum = (int(colnum[0])) - 1
 
@@ -421,14 +413,13 @@ def remove_excess_timer_override_and_relay_database_entries():
 
 
 def remove_excess_datetime_pairs():
-
     conn, curs = open_database_connection()
 
     dtcount = 0
 
     for relay in relay_timer_names:
         curs.execute("DELETE FROM {} WHERE pk > {};"
-                    .format(relay, numdtpairs[dtcount]))
+                     .format(relay, numdtpairs[dtcount]))
         dtcount += 1
 
     close_database_connection(conn, curs)
@@ -437,14 +428,13 @@ def remove_excess_datetime_pairs():
 
 
 def remove_unused_sensors():
-
     conn, curs = open_database_connection()
 
     for key, value in list(sensors.items()):
         if value["is_connected"] is False:
             try:
                 curs.execute("ALTER TABLE sensors DROP {};"
-                            .format(value["name"]))
+                             .format(value["name"]))
             except:
                 pass
 
@@ -454,16 +444,15 @@ def remove_unused_sensors():
 
 
 def remove_unused_sensors_settings():
-
     conn, curs = open_database_connection()
 
     for key, value in list(sensors.items()):
         if value["is_connected"] is False:
             try:
                 curs.execute(("ALTER TABLE settings DROP COLUMN {}, "
-                "DROP COLUMN {};")
-                .format(value["upper_alert_name"],
-                        value["lower_alert_name"]))
+                              "DROP COLUMN {};")
+                             .format(value["upper_alert_name"],
+                                     value["lower_alert_name"]))
             except:
                 pass
 
@@ -471,22 +460,22 @@ def remove_unused_sensors_settings():
 
     return
 
+
 # Read in the data from the Temp Sensor file
 
 
 def read_1_wire_temp_raw(temp_num):
+    f = open(sensors[temp_num]["ds18b20_file"], 'r')
+    lines = f.readlines()
+    f.close()
 
-        f = open(sensors[temp_num]["ds18b20_file"], 'r')
-        lines = f.readlines()
-        f.close()
+    return lines
 
-        return lines
 
 # Process the Temp Sensor file for errors and convert to degrees C
 
 
 def read_1_wire_temp(temp_num):
-
     lines = read_1_wire_temp_raw(temp_num)
 
     while lines[0].strip()[-3:] != 'YES':
@@ -498,16 +487,16 @@ def read_1_wire_temp(temp_num):
         temp_string = lines[1][equals_pos + 2:]
         # Use line below for Celsius
         temp_curr = float(temp_string) / 1000.0
-        #Uncomment line below for Fahrenheit
-        #temp_curr = ((float(temp_string) / 1000.0) * (9.0 / 5.0)) + 32
+        # Uncomment line below for Fahrenheit
+        # temp_curr = ((float(temp_string) / 1000.0) * (9.0 / 5.0)) + 32
 
         return temp_curr
+
 
 # read and log each sensor if it is set to True in the sensors list
 
 
 def log_sensor_readings(all_curr_readings):
-
     # Create a timestamp and store all readings on the MySQL database
 
     conn, curs = open_database_connection()
@@ -520,7 +509,7 @@ def log_sensor_readings(all_curr_readings):
     for readings in all_curr_readings:
         try:
             curs.execute(("UPDATE sensors SET {} = {} WHERE timestamp = '{}'")
-                        .format(readings[0], readings[1], last_timestamp))
+                         .format(readings[0], readings[1], last_timestamp))
         except:
             pass
 
@@ -530,7 +519,6 @@ def log_sensor_readings(all_curr_readings):
 
 
 def read_sensors():
-
     all_curr_readings = []
     alert_readings = []
     ref_temp = 25
@@ -542,10 +530,10 @@ def read_sensors():
             if value["sensor_type"] == "1_wire_temp":
                 try:
                     sensor_reading = (round(float(read_1_wire_temp(key)),
-                                 value["accuracy"]))
+                                            value["accuracy"]))
                 except:
                     sensor_reading = 50
-                    
+
                 all_curr_readings.append([value["name"], sensor_reading])
 
                 if value["test_for_alert"] is True:
@@ -553,23 +541,23 @@ def read_sensors():
                 if value["is_ref"] is True:
                     ref_temp = sensor_reading
 
-    # Get the readings from any Atlas Scientific temperature sensors
+            # Get the readings from any Atlas Scientific temperature sensors
 
             if value["sensor_type"] == "atlas_scientific_temp":
                 device = atlas_i2c(value["i2c"])
                 try:
                     sensor_reading = round(float(device.query("R")),
-                                value["accuracy"])
+                                           value["accuracy"])
                 except:
                     sensor_reading = 50
-                    
+
                 all_curr_readings.append([value["name"], sensor_reading])
                 if value["test_for_alert"] is True:
                     alert_readings.append([value["name"], sensor_reading])
                 if value["is_ref"] is True:
                     ref_temp = sensor_reading
-                    
-    # Get the readings from any Atlas Scientific Elec Conductivity sensors
+
+            # Get the readings from any Atlas Scientific Elec Conductivity sensors
 
             if value["sensor_type"] == "atlas_scientific_ec":
                 device = atlas_i2c(value["i2c"])
@@ -577,16 +565,16 @@ def read_sensors():
                 device.query("T," + str(ref_temp))
                 try:
                     sensor_reading = (round(((float(device.query("R"))) *
-                        value["ppm_multiplier"]), value["accuracy"]))
+                                             value["ppm_multiplier"]), value["accuracy"]))
                 except:
                     sensor_reading = 10000
-                    
+
                 all_curr_readings.append([value["name"], sensor_reading])
-                
+
                 if value["test_for_alert"] is True:
                     alert_readings.append([value["name"], sensor_reading])
 
-    # Get the readings from any other Atlas Scientific sensors
+            # Get the readings from any other Atlas Scientific sensors
 
             if value["sensor_type"] == "atlas_scientific":
                 device = atlas_i2c(value["i2c"])
@@ -594,13 +582,13 @@ def read_sensors():
                 device.query("T," + str(ref_temp))
                 try:
                     sensor_reading = round(float(device.query("R")),
-                                value["accuracy"])
+                                           value["accuracy"])
                 except:
                     if value["name"] == "ph":
                         sensor_reading = 2
                     elif value["name"] == "orp":
                         sensor_reading = 1000
-                        
+
                 all_curr_readings.append([value["name"], sensor_reading])
                 if value["test_for_alert"] is True:
                     alert_readings.append([value["name"], sensor_reading])
@@ -614,11 +602,10 @@ def read_sensors():
 
 
 def get_settings_table_values():
-
     # Get the current alert limit settings from the database
 
     conn = cymysql.connect(servername, username, password, dbname,
-                            cursorclass=cymysql.cursors.DictCursor)
+                           cursorclass=cymysql.cursors.DictCursor)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")
 
@@ -634,8 +621,7 @@ def get_settings_table_values():
 
 
 def send_email(alert_readings):
-
-    #Generate an email when there is a problem with the pool
+    # Generate an email when there is a problem with the pool
 
     # Get the email addresses to send the alert to
 
@@ -658,9 +644,9 @@ def send_email(alert_readings):
     msg['Subject'] = "Pool Alert"
 
     body = ("Hi\n\nThis is your Pool\n\nYou should know that the following "
-    "sensor(s) are indicating that there is a problem that needs your "
-    "attention\n{}\nPlease check this by logging into\n\nwww.yourwebsite.com"
-    "\n\n Regards\n\nYour HydroPi").format(out_of_limit_sensors.upper())
+            "sensor(s) are indicating that there is a problem that needs your "
+            "attention\n{}\nPlease check this by logging into\n\nwww.yourwebsite.com"
+            "\n\n Regards\n\nYour HydroPi").format(out_of_limit_sensors.upper())
 
     msg.attach(MIMEText(body, 'plain'))
 
@@ -677,7 +663,6 @@ def send_email(alert_readings):
 
 
 def check_sensor_alert_limits(alert_check):
-
     # Get all the limit settings for the email alert
 
     all_settings = get_settings_table_values()
@@ -693,10 +678,10 @@ def check_sensor_alert_limits(alert_check):
         for reading in alert_readings:
             for key, value in list(sensors.items()):
                 if reading[0] == value["name"]:
-                    if  ((reading[1] <
-                        all_settings[value["lower_alert_name"]])or
-                        (reading[1] >
-                        all_settings[value["upper_alert_name"]])):
+                    if ((reading[1] <
+                         all_settings[value["lower_alert_name"]]) or
+                            (reading[1] >
+                             all_settings[value["upper_alert_name"]])):
                         alert_check = True
                     else:
                         alert_check = False
@@ -705,7 +690,6 @@ def check_sensor_alert_limits(alert_check):
 
 
 def reset_email_sent_flag_if_alerts_clear(email_sent):
-
     check = []
 
     # Get all the limit settings for the alert
@@ -716,12 +700,12 @@ def reset_email_sent_flag_if_alerts_clear(email_sent):
         for key, value in list(sensors.items()):
             if reading[0] == value["name"]:
 
-                if  (reading[1] >
-                    (all_settings[value["lower_alert_name"]] *
-                    (1 + all_settings["offset_percent"])) and
-                    (reading[1] <
-                    (all_settings[value["upper_alert_name"]] *
-                    (1 - all_settings["offset_percent"])))):
+                if (reading[1] >
+                        (all_settings[value["lower_alert_name"]] *
+                         (1 + all_settings["offset_percent"])) and
+                        (reading[1] <
+                         (all_settings[value["upper_alert_name"]] *
+                          (1 - all_settings["offset_percent"])))):
                     check.append("OK")
 
     # Check if all the sensor readings are now OK, if so reset email_sent flag
@@ -733,7 +717,6 @@ def reset_email_sent_flag_if_alerts_clear(email_sent):
 
 
 def reset_pause_readings():
-
     # Reset pause flag to restart sensor readings
 
     conn, curs = open_database_connection()
@@ -747,7 +730,6 @@ def reset_pause_readings():
 
 
 def read_timer_override_data():
-
     # Read whether the Relay should be On, Off or using the timer
 
     conn, curs = open_database_connection()
@@ -759,11 +741,11 @@ def read_timer_override_data():
 
     return override_timer_values
 
-#Get the start/stop pairs from the database
+
+# Get the start/stop pairs from the database
 
 
 def get_relay_timer_start_stop_data(tablename, row):
-
     conn, curs = open_database_connection()
 
     curs.execute("SELECT * FROM {} WHERE pk={}".format(tablename, row))
@@ -773,17 +755,17 @@ def get_relay_timer_start_stop_data(tablename, row):
 
     return relay_timer_values
 
-#Check the start/stop pairs retrieved from the database and see if all the
-#conditions are met to activate the Relay
+
+# Check the start/stop pairs retrieved from the database and see if all the
+# conditions are met to activate the Relay
 
 
 def check_each_start_stop_timer(timer_data):
-
     # If the relay is set to auto then check all start/stop times for that
     # relay and based on current time turn relay on or off
 
     if timer_data[1] is None:  # Python reads a "NULL" value as None
-        return  False
+        return False
 
     else:
         cdt = datetime.datetime.now()
@@ -793,10 +775,10 @@ def check_each_start_stop_timer(timer_data):
         stoptimer = stoptimer.replace(year=cdt.year)
 
         if (cdt.date() >= starttimer.date()  # Check month and day
-            and cdt.date() <= stoptimer.date()):
+                and cdt.date() <= stoptimer.date()):
 
             if (cdt.time() >= starttimer.time()  # Check hour and minute
-                and cdt.time() <= stoptimer.time()):
+                    and cdt.time() <= stoptimer.time()):
                 return True
             else:
                 return False
@@ -805,11 +787,10 @@ def check_each_start_stop_timer(timer_data):
 
 
 def current_relay_state(currrelay, relaystate):
-
     conn, curs = open_database_connection()
 
     curs.execute("UPDATE IGNORE timer_override SET {} = {} WHERE pk = 2"
-                .format(currrelay, relaystate))
+                 .format(currrelay, relaystate))
 
     close_database_connection(conn, curs)
 
@@ -817,7 +798,6 @@ def current_relay_state(currrelay, relaystate):
 
 
 def activate_deactivate_relays():
-
     # Read settings of On, Off or Auto for each relay and execute required
     # relay state
 
@@ -852,6 +832,7 @@ def activate_deactivate_relays():
             current_relay_state(relayname, False)
     return
 
+
 # Configuration Settings
 
 # Define the sensor names, what sensors are connected, the sensor type, the
@@ -867,71 +848,71 @@ def activate_deactivate_relays():
 # temperature is always set before the other Atlas Scientific sensors are read.
 
 sensors = OrderedDict([("temp_1", {  # DS18B20 Temperature Sensor
-                            "sensor_type": "1_wire_temp",
-                            "name": "ds18b20_temp",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "ds18b20_file":
-                            "/sys/bus/w1/devices/28-xxxxxxxxxxxx/w1_slave",
-                            "accuracy": 1,
-                            "test_for_alert": False,
-                            "upper_alert_name": "ds18b20_temp_hi",
-                            "upper_alert_value": 50,
-                            "lower_alert_name": "ds18b20_temp_low",
-                            "lower_alert_value": 10}),
+    "sensor_type": "1_wire_temp",
+    "name": "ds18b20_temp",
+    "is_connected": True,
+    "is_ref": False,
+    "ds18b20_file":
+        "/sys/bus/w1/devices/28-xxxxxxxxxxxx/w1_slave",
+    "accuracy": 1,
+    "test_for_alert": False,
+    "upper_alert_name": "ds18b20_temp_hi",
+    "upper_alert_value": 50,
+    "lower_alert_name": "ds18b20_temp_low",
+    "lower_alert_value": 10}),
 
                        ("atlas_sensor_1", {  # Atlas Scientific Temp Sensor
-                            "sensor_type": "atlas_scientific_temp",
-                            "name": "atlas_temp",
-                            "is_connected": True,
-                            "is_ref": True,
-                            "i2c": 102,
-                            "accuracy": 1,
-                            "test_for_alert": False,
-                            "upper_alert_name": "atlas_temp_hi",
-                            "upper_alert_value": 40,
-                            "lower_alert_name": "atlas_temp_low",
-                            "lower_alert_value": 25}),
+                           "sensor_type": "atlas_scientific_temp",
+                           "name": "atlas_temp",
+                           "is_connected": True,
+                           "is_ref": True,
+                           "i2c": 102,
+                           "accuracy": 1,
+                           "test_for_alert": False,
+                           "upper_alert_name": "atlas_temp_hi",
+                           "upper_alert_value": 40,
+                           "lower_alert_name": "atlas_temp_low",
+                           "lower_alert_value": 25}),
 
                        ("atlas_sensor_3", {  # Atlas Scientific EC Sensor
-                            "sensor_type": "atlas_scientific_ec",
-                            "name": "ec",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "i2c": 100,
-                            "accuracy": 0,
-                            "ppm_multiplier": 0.67,  # Convert EC to PPM
-                            "test_for_alert": True,
-                            "upper_alert_name": "ec_hi",
-                            "upper_alert_value": 6000,
-                            "lower_alert_name": "ec_low",
-                            "lower_alert_value": 4500}),
+                           "sensor_type": "atlas_scientific_ec",
+                           "name": "ec",
+                           "is_connected": True,
+                           "is_ref": False,
+                           "i2c": 100,
+                           "accuracy": 0,
+                           "ppm_multiplier": 0.67,  # Convert EC to PPM
+                           "test_for_alert": True,
+                           "upper_alert_name": "ec_hi",
+                           "upper_alert_value": 6000,
+                           "lower_alert_name": "ec_low",
+                           "lower_alert_value": 4500}),
 
                        ("atlas_sensor_4", {  # pH/ORP Atlas Scientific Sensor
-                            "sensor_type": "atlas_scientific",
-                            "name": "ph",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "i2c": 99,
-                            "accuracy": 2,
-                            "test_for_alert": True,
-                            "upper_alert_name": "ph_hi",
-                            "upper_alert_value": 7.4,
-                            "lower_alert_name": "ph_low",
-                            "lower_alert_value": 7}),
+                           "sensor_type": "atlas_scientific",
+                           "name": "ph",
+                           "is_connected": True,
+                           "is_ref": False,
+                           "i2c": 99,
+                           "accuracy": 2,
+                           "test_for_alert": True,
+                           "upper_alert_name": "ph_hi",
+                           "upper_alert_value": 7.4,
+                           "lower_alert_name": "ph_low",
+                           "lower_alert_value": 7}),
 
                        ("atlas_sensor_5", {  # pH/ORP Atlas Scientific Sensor
-                            "sensor_type": "atlas_scientific",
-                            "name": "orp",
-                            "is_connected": True,
-                            "is_ref": False,
-                            "i2c": 98,
-                            "accuracy": 0,
-                            "test_for_alert": True,
-                            "upper_alert_name": "orp_hi",
-                            "upper_alert_value": 700,
-                            "lower_alert_name": "orp_low",
-                            "lower_alert_value": 550})])
+                           "sensor_type": "atlas_scientific",
+                           "name": "orp",
+                           "is_connected": True,
+                           "is_ref": False,
+                           "i2c": 98,
+                           "accuracy": 0,
+                           "test_for_alert": True,
+                           "upper_alert_name": "orp_hi",
+                           "upper_alert_value": 700,
+                           "lower_alert_name": "orp_low",
+                           "lower_alert_value": 550})])
 
 # Define other alert settings
 
@@ -965,7 +946,6 @@ loops = 0  # Set starting loops count for timing relay and sensor readings
 email_sent = False
 email_sent_reset = 0
 pause_loops = 0
-
 
 #################
 #               #
@@ -1015,9 +995,9 @@ while True:  # Repeat the code indefinitely
         delays = get_settings_table_values()
         time_between_readings = delays["read_sensor_delay"]
         email_reset_loop = (delays["email_reset_delay"] //
-                                    time_between_readings)
+                            time_between_readings)
         pause_reset_loop = (delays["pause_reset_delay"] //
-                                    time_between_readings)
+                            time_between_readings)
 
         if delays["pause_readings"] == 0:
             alert_readings = read_sensors()

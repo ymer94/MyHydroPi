@@ -21,7 +21,6 @@ from time import sleep
 import RPi.GPIO as GPIO
 from picamera import PiCamera
 
-
 # Configures pin numbering to Broadcom reference
 GPIO.setmode(GPIO.BCM)
 
@@ -35,29 +34,28 @@ image_no = 1
 # Set where you want the image saved
 image_folder = ('/home/pi/myprojects/Cam_Images')
 
-
 # Check that the directory to save the images exists, if not create one
 if not os.path.exists(image_folder):
-    print ("Making Directory")  # Not required testing only
+    print("Making Directory")  # Not required testing only
     os.makedirs(image_folder)
 
 camera.start_preview()
-sleep(5) #  Allow camera to set light levels
+sleep(5)  # Allow camera to set light levels
 
-print ("Ready")  # Not required testing only
+print("Ready")  # Not required testing only
 
 try:
     while True:
         if GPIO.input(gpio_pin):  # Check for PIR sensor trigger
-            print ("Button Pushed")  # Not required testing only
+            print("Button Pushed")  # Not required testing only
             # Check file name so that you don't overwrite an existing image
-            while os.path.isfile('/home/pi/myprojects/Cam_Images/image%s.jpg' %image_no):
+            while os.path.isfile('/home/pi/myprojects/Cam_Images/image%s.jpg' % image_no):
                 image_no += 1
             # Take and save picture
-            camera.capture('/home/pi/myprojects/Cam_Images/image%s.jpg' %image_no)
+            camera.capture('/home/pi/myprojects/Cam_Images/image%s.jpg' % image_no)
             sleep(1)  # Time between shots if button is held down
-            print ("Picture Captured")  # Not required testing only
+            print("Picture Captured")  # Not required testing only
 except KeyboardInterrupt:
-    print ("Shutting Down")  # Not required testing only
+    print("Shutting Down")  # Not required testing only
     camera.stop_preview()
     GPIO.cleanup()

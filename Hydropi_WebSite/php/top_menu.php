@@ -28,4 +28,3 @@ echo "        \n<body onload=\"updateClock(); setInterval('updateClock()', 1000)
         </nav>
         <div class=\"col-lg-12\" style=padding-top:90px;>
         </div>\n";
-?>

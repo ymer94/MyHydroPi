@@ -19,10 +19,10 @@ import time  # used for sleep delay and timestamps
 
 class atlas_i2c:
     long_timeout = 1.5  # the timeout needed to query readings and
-                        #calibrations
+    # calibrations
     short_timeout = .5  # timeout for regular commands
     default_bus = 1  # the default bus for I2C on the newer Raspberry Pis,
-                     # certain older boards use bus 0
+    # certain older boards use bus 0
     default_address = 102  # the default address for the pH sensor
 
     def __init__(self, address=default_address, bus=default_bus):
@@ -72,10 +72,10 @@ class atlas_i2c:
         self.write(string)
 
         # the read and calibration commands require a longer timeout
-        if((string.upper().startswith("R")) or
-           (string.upper().startswith("CAL"))):
+        if ((string.upper().startswith("R")) or
+                (string.upper().startswith("CAL"))):
             time.sleep(self.long_timeout)
-        elif((string.upper().startswith("SLEEP"))):
+        elif ((string.upper().startswith("SLEEP"))):
             return "sleep mode"
         else:
             time.sleep(self.short_timeout)
@@ -89,15 +89,15 @@ class atlas_i2c:
 
 def main():
     device = atlas_i2c()  # creates the I2C port object,
-                          #specify the address or bus if necessary
+    # specify the address or bus if necessary
     print(">> Atlas Scientific sample code")
     print(">> Any commands entered are passed to the board via I2C except:")
     print(">> Address,xx changes the I2C address the Raspberry Pi "
-         "communicates with.")
+          "communicates with.")
     print(">> Poll,xx.x command continuously polls the board every "
           "xx.x seconds")
     print(" where xx.x is longer than the {} second timeout.".
-              format(atlas_i2c.long_timeout))
+          format(atlas_i2c.long_timeout))
     print(" Pressing ctrl-c will stop the polling")
 
     # main loop
@@ -106,28 +106,28 @@ def main():
 
         # address command lets you change which address
         # the Raspberry Pi will poll
-        if(myinput.upper().startswith("ADDRESS")):
+        if (myinput.upper().startswith("ADDRESS")):
             addr = int(myinput.split(',')[1])
             device.set_i2c_address(addr)
             print("I2C address set to " + str(addr))
 
         # contiuous polling command automatically polls the board
-        elif(myinput.upper().startswith("POLL")):
+        elif (myinput.upper().startswith("POLL")):
             delaytime = float(myinput.split(',')[1])
 
             # check for polling time being too short,
             # change it to the minimum timeout if too short
-            if(delaytime < atlas_i2c.long_timeout):
+            if (delaytime < atlas_i2c.long_timeout):
                 print("Polling time is shorter than timeout, "
                       "setting polling time to {}".
-                          format(atlas_i2c.long_timeout))
+                      format(atlas_i2c.long_timeout))
                 delaytime = atlas_i2c.long_timeout
 
             # get the information of the board you're polling
             info = device.query("I").split(",")[1]
             print("Polling {} sensor every {} seconds, press ctrl-c "
                   "to stop polling".
-                      format(info, delaytime))
+                  format(info, delaytime))
 
             try:
                 while True:

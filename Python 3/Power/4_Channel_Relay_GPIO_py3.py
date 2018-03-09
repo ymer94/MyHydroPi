@@ -30,12 +30,12 @@ for i in OutputPins:
     GPIO.output(i, False)
 
 while (True):
-# Step through each GPIO pin and set On
+    # Step through each GPIO pin and set On
     for i in OutputPins:
         GPIO.output(i, True)
-# Sleep for 5 seconds
+    # Sleep for 5 seconds
     sleep(5)
-# Step through each GPIO pin and set Off
+    # Step through each GPIO pin and set Off
     for i in OutputPins:
         GPIO.output(i, False)
     sleep(5)

@@ -47,28 +47,26 @@ import RPi.GPIO
 import cymysql.cursors
 from time import sleep
 
-
 # Uncomment sleep if running program at startup with crontab
 
 sleep(10)
+
 
 # Check the the number of GPIO ports equals the number of Start/Stop pairs
 
 
 def check_number_of_relays_equals_start_stop_pairs():
-
     if len(outputpins) != len(numdtpairs):
         os.system('clear')
         print("\nThe number of GPIO ports you have listed does not match the\n"
-        "number of Start/Stop pairs you have set for each relay.\n\n"
-        "Please update the variables \"outputpins\" or \"numdtpairs\"\n"
-        "so that they have the same number of entries.\n")
+              "number of Start/Stop pairs you have set for each relay.\n\n"
+              "Please update the variables \"outputpins\" or \"numdtpairs\"\n"
+              "so that they have the same number of entries.\n")
         sys.exit()  # Stop program
     return
 
 
 def set_GPIO_pins():
-
     RPi.GPIO.setmode(RPi.GPIO.BCM)
     RPi.GPIO.setwarnings(False)
 
@@ -77,11 +75,11 @@ def set_GPIO_pins():
         RPi.GPIO.output(relay, False)
     sleep(2)
 
+
 # Create required database in the MySQL if it doesn't' already exist
 
 
 def create_database():
-
     conn = cymysql.connect(servername, username, password)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")  # Hide Warnings
@@ -95,7 +93,6 @@ def create_database():
 
 
 def open_database_connection():
-
     conn = cymysql.connect(servername, username, password, dbname)
     curs = conn.cursor()
     curs.execute("SET sql_notes = 0; ")  # Hide Warnings
@@ -104,14 +101,12 @@ def open_database_connection():
 
 
 def close_database_connection(conn, curs):
-
     curs.execute("SET sql_notes = 1; ")
     conn.commit()
     conn.close()
 
 
 def create_relay_tables():
-
     conn, curs = open_database_connection()
 
     relaytimer = []
@@ -123,16 +118,16 @@ def create_relay_tables():
 
     for tablename in relaytimer:
         curs.execute("CREATE TABLE IF NOT EXISTS {} "
-                    "(pk INT UNSIGNED PRIMARY KEY,"
-                    "starttime DATETIME DEFAULT NULL, "
-                    "stoptime DATETIME DEFAULT "
-                    "NULL);".format(tablename))
+                     "(pk INT UNSIGNED PRIMARY KEY,"
+                     "starttime DATETIME DEFAULT NULL, "
+                     "stoptime DATETIME DEFAULT "
+                     "NULL);".format(tablename))
 
-    # Add default "NULL" data to each relay_timer table
+        # Add default "NULL" data to each relay_timer table
 
         for pairs in range(1, (numdtpairs[dtcount] + 1)):
             curs.execute("INSERT IGNORE INTO {} (pk,starttime,stoptime)"
-                        " VALUES({},NULL,NULL)".format(tablename, pairs))
+                         " VALUES({},NULL,NULL)".format(tablename, pairs))
         dtcount += 1
 
     close_database_connection(conn, curs)
@@ -141,11 +136,10 @@ def create_relay_tables():
 
 
 def create_timer_override_table():
-
     conn, curs = open_database_connection()
 
     curs.execute("CREATE TABLE IF NOT EXISTS timer_override "
-                "(pk INT UNSIGNED PRIMARY KEY);")
+                 "(pk INT UNSIGNED PRIMARY KEY);")
     curs.execute("INSERT IGNORE INTO timer_override (pk) VALUES(1)")
 
     # Add columns and default "off" data to timer_override table
@@ -154,9 +148,9 @@ def create_timer_override_table():
         relayname = ("relay_" + str(number))
         try:
             curs.execute("ALTER TABLE timer_override ADD {} VARCHAR(4);"
-            .format(relayname))
+                         .format(relayname))
             curs.execute("UPDATE IGNORE timer_override SET {} = 'off' "
-                        "WHERE pk=1;".format(relayname))
+                         "WHERE pk=1;".format(relayname))
         except:
             pass
 
@@ -168,21 +162,20 @@ def create_timer_override_table():
 
 
 def remove_excess_timer_override_and_relay_database_entries():
-
     conn, curs = open_database_connection()
 
     curs.execute("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-                "TABLE_NAME = 'timer_override';")
+                 "TABLE_NAME = 'timer_override';")
     colnum = curs.fetchone()
     colnum = (int(colnum[0])) - 1
 
     while colnum > len(outputpins):
         curs.execute("ALTER TABLE timer_override DROP {};"
-                    .format("relay_" + str(colnum)))
+                     .format("relay_" + str(colnum)))
         curs.execute("DROP TABLE {};"
-                    .format("relay_" + str(colnum) + "_timer"))
+                     .format("relay_" + str(colnum) + "_timer"))
         curs.execute("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-                    "TABLE_NAME = 'timer_override';")
+                     "TABLE_NAME = 'timer_override';")
         colnum = curs.fetchone()
         colnum = (int(colnum[0])) - 1
 
@@ -192,14 +185,13 @@ def remove_excess_timer_override_and_relay_database_entries():
 
 
 def remove_excess_datetime_pairs():
-
     conn, curs = open_database_connection()
 
     dtcount = 0
 
     for relay in relay_timer_names:
         curs.execute("DELETE FROM {} WHERE pk > {};"
-                    .format(relay, numdtpairs[dtcount]))
+                     .format(relay, numdtpairs[dtcount]))
         dtcount += 1
 
     close_database_connection(conn, curs)
@@ -208,7 +200,6 @@ def remove_excess_datetime_pairs():
 
 
 def read_timer_override_data():
-
     # Read whether the Relay should be On, Off or using the timer
 
     conn, curs = open_database_connection()
@@ -220,11 +211,11 @@ def read_timer_override_data():
 
     return override_timer_values
 
-#Get the start/stop pairs from the database
+
+# Get the start/stop pairs from the database
 
 
 def get_relay_timer_start_stop_data(tablename, row):
-
     conn, curs = open_database_connection()
 
     curs.execute("SELECT * FROM {} WHERE pk={}".format(tablename, row))
@@ -234,17 +225,17 @@ def get_relay_timer_start_stop_data(tablename, row):
 
     return relay_timer_values
 
-#Check the start/stop pairs retrieved from the database and see if all the
-#conditions are met to activate the Relay
+
+# Check the start/stop pairs retrieved from the database and see if all the
+# conditions are met to activate the Relay
 
 
 def check_each_start_stop_timer(timer_data):
-
     # If the relay is set to auto then check all start/stop times for that
     # relay and based on current time turn relay on or off
 
     if timer_data[1] is None:  # Python reads a "NULL" value as None
-        return  False
+        return False
 
     else:
         cdt = datetime.datetime.now()
@@ -254,10 +245,10 @@ def check_each_start_stop_timer(timer_data):
         stoptimer = stoptimer.replace(year=cdt.year)
 
         if (cdt.date() >= starttimer.date()  # Check month and day
-            and cdt.date() <= stoptimer.date()):
+                and cdt.date() <= stoptimer.date()):
 
             if (cdt.time() >= starttimer.time()  # Check hour and minute
-                and cdt.time() <= stoptimer.time()):
+                    and cdt.time() <= stoptimer.time()):
                 return True
             else:
                 return False
@@ -266,7 +257,6 @@ def check_each_start_stop_timer(timer_data):
 
 
 def activate_deactivate_relays():
-
     # Read settings of On, Off or Auto for each relay and execute required
     # relay state
 
